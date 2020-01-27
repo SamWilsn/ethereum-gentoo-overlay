@@ -11,12 +11,13 @@ SRC_URI="https://github.com/ethereum/solidity/releases/download/v${PV}/solidity_
 
 LICENSE="GPL-3"
 SLOT="0"
-KEYWORDS="amd64"
+KEYWORDS="~amd64"
 IUSE="-test -z3"
 
 PATCHES=(
 	"${FILESDIR}/${P}-require_cxx_17.patch"
-#	"${FILESDIR}/${P}-fix_rpath_in_binaries.patch"
+	"${FILESDIR}/${P}-fix_rpath_in_binaries.patch"
+	"${FILESDIR}/${P}-drop_encoding_parameter_when_open_binary_file.patch"
 )
 
 DEPEND="dev-libs/boost
@@ -33,12 +34,13 @@ BUILD_DIR="${WORKDIR}/build"
 src_configure() {
 	CMAKE_MAKEFILE_GENERATOR='emake'
 	local DTESTS='ON' ; use test || DTESTS='OFF'
+	local DOSSFUZZ='OFF' ; use test || DOSSFUZZ='OFF'
 	local DUSE_Z3='ON' ; use z3 || DUSE_Z3='OFF'
 	local mycmakeargs=(
 		"-DBoost_USE_STATIC_LIBS=OFF"
 		"-DSOLC_LINK_STATIC=OFF"
 		"-DCOVERAGE=OFF"
-		"-DOSSFUZZ=OFF"
+		"-DOSSFUZZ=${DOSSFUZZ}"
 		"-DTESTS=${DTESTS}"
 		"-DUSE_Z3=${DUSE_Z3}"
 		"-DUSE_CVC4=OFF"
@@ -54,15 +56,9 @@ src_install() {
 		"${BUILD_DIR}/libyul/libyul.so" \
 		"${BUILD_DIR}/libevmasm/libevmasm.so" \
 		"${BUILD_DIR}/liblangutil/liblangutil.so" \
-		"${BUILD_DIR}/libdevcore/libdevcore.so"
+		"${BUILD_DIR}/libsolutil/libsolutil.so"
 
-	# lllc dynamic dependencies
-	use lll && dolib.so \
-		"${BUILD_DIR}/libevmasm/libevmasm.so" \
-		"${BUILD_DIR}/libdevcore/libdevcore.so" \
-		"${BUILD_DIR}/liblll/liblll.so"
-
-	# solc and lllc
+	# solc
 	emake -C "${BUILD_DIR}" DESTDIR="${D}" install
 
 	# documentation files
@@ -81,9 +77,9 @@ src_test() {
 			die "${EVMONE} not found! Please report this to the package maintainer."
 		}
 		cd "${S}/scripts"
+		SMT_FLAGS="--evmonepath ${EVMONE}" \
 		LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${BUILD_DIR}/libyul:${BUILD_DIR}/liblangutil" \
 		SOLIDITY_BUILD_DIR=../build \
-		SMT_FLAGS="--evmonepath ${EVMONE}" \
 		./tests.sh
 	}
 

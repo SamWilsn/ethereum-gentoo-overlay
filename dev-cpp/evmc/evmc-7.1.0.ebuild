@@ -18,12 +18,11 @@ PATCHES=(
 	"${FILESDIR}/${P}-do_not_hunt_gtest.patch"
 )
 
-DEPEND=""
+DEPEND=">=dev-cpp/gtest-1.9"
 RDEPEND="${DEPEND}"
 BDEPEND="sys-devel/gcc
 	sys-devel/make
-	dev-util/cmake
-	test? ( dev-cpp/gtest )"
+	dev-util/cmake"
 
 src_configure() {
 	CMAKE_MAKEFILE_GENERATOR='emake'
