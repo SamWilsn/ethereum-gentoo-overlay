@@ -57,6 +57,20 @@ atom_use() {
     sed 's/^ *//'
 }
 
+atom_keywords() {
+    local ATOM=$1
+    local EBUILD=$( equery which $ATOM )
+    local KEYWORDS=$( sed -r \
+        -e '/^KEYWORDS=/!d' \
+        -e 's/^KEYWORDS="//' \
+        -e 's/"$//' \
+        "$EBUILD"
+    )
+    echo -n "$KEYWORDS"
+}
+
+rm -rf /etc/portage/package.{use,accept_keywords}
+mkdir -p /etc/portage/package.{use,accept_keywords}
 set -x
 atoms | \
 grep "$PATTERN" | \
@@ -64,6 +78,8 @@ while read ATOM ; do
     emerge --depclean
     USE=$( atom_use $ATOM )
     echo "$ATOM $USE" >/etc/portage/package.use/ethereum
+    KEYWORDS=$( atom_keywords $ATOM )
+    echo "$ATOM $KEYWORDS" >/etc/portage/package.accept_keywords/ethereum
     $EMERGE_BIN --onlydeps $ATOM
     FEATURES='test ccache' CCACHE_DIR="/var/cache/ccache" CCACHE_SIZE="5G" emerge $ATOM
     emerge --unmerge $ATOM
